@@ -24,8 +24,11 @@ module.exports = async function generateAdminRoutes(app) {
         const tableName = req.params.table;
         const [schema] = await pool.execute(`DESCRIBE \`${tableName}\``);
         const [rows] = await pool.execute(`SELECT * FROM \`${tableName}\``);
+        // Получение внешних ключей
+        const [relations] = await pool.execute(`SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND CONSTRAINT_NAME != 'PRIMARY'`, [dbConfig.database]);
+
         const displayFields = schema.map(col => col.Field);
-        console.log(rows, displayFields)
+        console.log(rows, displayFields, schema, relations)
 
         res.render('table', {
             title: `Таблица: ${tableName}`,
@@ -58,3 +61,4 @@ module.exports = async function generateAdminRoutes(app) {
         res.redirect(`/admin/${tableName}`);
     });
 };
+

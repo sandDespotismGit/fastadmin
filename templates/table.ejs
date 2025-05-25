@@ -1,11 +1,22 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
     <title><%= title %></title>
     <style>
+      body {
+        font-family: "Montserrat", sans-serif;
+        padding: 20px;
+      }
       table {
         border-collapse: collapse;
         width: 100%;
+        margin-bottom: 30px;
       }
       th,
       td {
@@ -17,6 +28,16 @@
       }
       form.inline {
         display: inline;
+      }
+      form.add-form input {
+        width: 100%;
+        padding: 6px;
+        box-sizing: border-box;
+      }
+      button {
+        padding: 5px 10px;
+        font-weight: bold;
+        cursor: pointer;
       }
     </style>
   </head>
@@ -49,6 +70,22 @@
           </td>
         </tr>
         <% }) %>
+        <!-- Форма добавления новой строки -->
+        <tr>
+          <form
+            class="add-form"
+            method="POST"
+            action="/admin/<%= tableName %>/add"
+          >
+            <% displayFields.forEach(field => { %> <% if (field === 'id') { %>
+            <td>—</td>
+            <!-- Пропуск поля id -->
+            <% } else { %>
+            <td><input type="text" name="<%= field %>" /></td>
+            <% } %> <% }) %>
+            <td><button type="submit">➕ Добавить</button></td>
+          </form>
+        </tr>
       </tbody>
     </table>
   </body>
