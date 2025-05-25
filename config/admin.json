@@ -1,0 +1,15 @@
+{
+    "database": {
+      "host": "localhost",
+      "user": "wordpress",
+      "password": "wordpress",
+      "database": "access_bot"
+    },
+    "tables": {
+      "products": {
+        "title": "Продукты",
+        "display": ["id", "name"]
+      }
+    }
+  }
+  

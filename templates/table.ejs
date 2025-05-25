@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <style>
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+      form.inline {
+        display: inline;
+      }
+    </style>
+  </head>
+  <body>
+    <h1><%= title %></h1>
+
+    <table>
+      <thead>
+        <tr>
+          <% displayFields.forEach(field => { %>
+          <th><%= field %></th>
+          <% }) %>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% data.forEach(row => { %>
+        <tr>
+          <% displayFields.forEach(field => { %>
+          <td><%= row[field] %></td>
+          <% }) %>
+          <td>
+            <form
+              class="inline"
+              method="POST"
+              action="/admin/<%= tableName %>/delete/<%= row.id %>"
+            >
+              <button type="submit">🗑 Удалить</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </body>
+</html>
