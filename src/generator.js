@@ -1,6 +1,7 @@
 const mysql = require('mysql2/promise');
 const express = require('express');
-const pool = require('./db')
+const pool = require('./db');
+const config = require('../config/admin.json');
 
 const dbConfig = {
     host: 'localhost',
@@ -24,6 +25,8 @@ module.exports = async function generateAdminRoutes(app) {
         const tableName = req.params.table;
         const [schema] = await pool.execute(`DESCRIBE \`${tableName}\``);
         const [rows] = await pool.execute(`SELECT * FROM \`${tableName}\``);
+        const [tables] = await pool.execute('SHOW TABLES');
+        const tableNames = tables.map(t => Object.values(t)[0]);
         // Получение внешних ключей
         const [relations] = await pool.execute(`SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND CONSTRAINT_NAME != 'PRIMARY'`, [dbConfig.database]);
 
@@ -34,6 +37,7 @@ module.exports = async function generateAdminRoutes(app) {
             title: `Таблица: ${tableName}`,
             tableName,
             displayFields,
+            allTables: Object.keys(config.tables),
             data: rows,
             schema
         });

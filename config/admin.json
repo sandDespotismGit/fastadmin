@@ -9,6 +9,10 @@
       "products": {
         "title": "Продукты",
         "display": ["id", "name"]
+      },
+      "images": {
+        "title":"Картинки",
+        "display":["id", "url"]
       }
     }
   }
