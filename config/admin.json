@@ -8,13 +8,18 @@
     "tables": {
       "products": {
         "title": "Продукты",
-        "display": ["id", "name"],
-        "editable":["name"]
+        "display": ["id", "name", "proportions", "sizes", "dimensions", "matrix_size", "orientation", "price", "description", "category"],
+        "editable":["name","proportions", "sizes", "dimensions", "matrix_size", "orientation", "price", "description", "category"]
       },
       "images": {
         "title":"Картинки",
         "display":[ "id","url"],
         "editable":["url"]
+      },
+      "images_products":{
+        "title":"Системная таблица для связи между картинками и продуктами",
+        "display":["id"],
+        "editable":[]
       }
     }
   }

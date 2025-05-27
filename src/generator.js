@@ -32,7 +32,7 @@ module.exports = async function generateAdminRoutes(app) {
 
         const displayFields = schema.map(col => { return [col.Field, col.Type] }).filter((elem) => config.tables[tableName].display.includes(elem[0]));
 
-        console.log(config.tables[tableName].editable, displayFields)
+        console.log(relations)
 
         res.render('table', {
             title: `Таблица: ${tableName}`,
@@ -64,9 +64,60 @@ module.exports = async function generateAdminRoutes(app) {
         const tableName = req.params.table;
         const id = req.params.id;
 
-        await pool.execute(`DELETE FROM \`${tableName}\` WHERE id = ?`, [id]);
-        res.redirect(`/admin/${tableName}`);
+        try {
+            await pool.execute(`DELETE FROM \`${tableName}\` WHERE id = ?`, [id]);
+            res.redirect(`/admin/${tableName}`);
+        } catch (error) {
+            if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.errno === 1451) {
+                // Получаем все внешние ключи, ссылающиеся на эту таблицу
+                const [relations] = await pool.execute(`
+                  SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+                  FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                  WHERE REFERENCED_TABLE_NAME = ? AND TABLE_SCHEMA = ?
+                `, [tableName, dbConfig.database]);
+
+                let relatedTables = [];
+
+                for (const relation of relations) {
+                    // Проверим, есть ли реально связанные строки в других таблицах
+                    const [rows] = await pool.execute(`
+                      SELECT * FROM \`${relation.TABLE_NAME}\` WHERE \`${relation.COLUMN_NAME}\` = ?
+                    `, [id]);
+
+                    if (rows.length > 0) {
+                        relatedTables.push({
+                            table: relation.TABLE_NAME,
+                            column: relation.COLUMN_NAME,
+                            count: rows.length
+                        });
+                    }
+                }
+
+                let relatedInfo = relatedTables.map(rt =>
+                    `• В таблице ${rt.table} найдено ${rt.count} записей, ссылающихся на это значение через поле ${rt.column}`
+                ).join('<br>');
+
+                if (!relatedInfo) {
+                    relatedInfo = '⚠️ Обнаружены связи, но записи не найдены. Возможно, причина в другой таблице.';
+                }
+
+                res.render('error', {
+                    title: 'Ошибка удаления',
+                    message: `
+                      Невозможно удалить запись с id = ${id} из таблицы ${tableName}, 
+                      так как она связана с другими данными:${relatedInfo}
+                      Пожалуйста, сначала удалите связанные записи.
+                    `,
+                    returnLink: `/admin/${tableName}`
+                });
+            } else {
+                console.error(error);
+                res.status(500).send('Внутренняя ошибка сервера');
+            }
+        }
     });
+
+
     app.get('/admin/:table/edit/:id', async (req, res) => {
         const tableName = req.params.table;
         const id = req.params.id;

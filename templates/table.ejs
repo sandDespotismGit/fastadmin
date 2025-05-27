@@ -104,24 +104,22 @@
       <h1><%= title %></h1>
 
       <h2>Связи</h2>
-      <table>
-        <thead>
-          <tr>
-            <% Object.keys(relations[0]).forEach(field => { %>
-            <th><%= field %></th>
-            <% }) %>
-          </tr>
-        </thead>
-        <tbody>
-          <% relations.forEach(row => { %>
-          <tr>
-            <% Object.keys(row).forEach(field => { %>
-            <td><%= row[field] %></td>
-            <% }) %>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
+      <% if (relations && relations.length > 0) { %>
+      <p>Эта таблица связана со следующими таблицами:</p>
+      <ul>
+        <% relations.filter((relation) => (relation.REFERENCED_TABLE_NAME ===
+        tableName || relation.TABLE_NAME === tableName) &&
+        (relation.REFERENCED_TABLE_NAME != null && relation.TABLE_NAME != null)
+        ).forEach(function(elem) { var relatedTable = elem.REFERENCED_TABLE_NAME
+        === tableName ? elem.TABLE_NAME : elem.REFERENCED_TABLE_NAME; %>
+        <li>
+          <a href="/admin/<%= relatedTable %>"><%= relatedTable %></a>
+        </li>
+        <% }); %>
+      </ul>
+      <% } else { %>
+      <p>Связей с другими таблицами не найдено.</p>
+      <% } %>
       <table>
         <thead>
           <tr>
@@ -157,14 +155,18 @@
               class="add-form"
               method="POST"
               action="/admin/<%= tableName %>/add"
+              onsubmit="return validateForm(this)"
             >
-              <% displayFields.forEach(field => { %> <% if (field[0] === 'id') {
-              %>
+              <% displayFields.forEach(field => { const name = field[0]; const
+              type = field[1]; %> <% if (name === 'id') { %>
               <td>—</td>
               <% } else { %>
               <td>
-                <input type="text" name="<%= field[0] %>" <%=
-                editable.includes(field[0]) ? '' : 'disabled="disabled"' %> />
+                <input name="<%= name %>" <%= editable.includes(name) ? (
+                type.includes('int') ? 'type="number" required' :
+                type.includes('varchar') ? `type="text"
+                maxlength="${(type.match(/\\d+/) || [255])[0]}" required` :
+                'type="text" required' ) : 'disabled' %> />
               </td>
               <% } %> <% }) %>
               <td><button type="submit">➕ Добавить</button></td>
@@ -173,5 +175,26 @@
         </tbody>
       </table>
     </div>
+    <script>
+      function validateForm(form) {
+        const inputs = form.querySelectorAll("input:not([disabled])");
+        let isValid = true;
+
+        inputs.forEach((input) => {
+          if (!input.checkValidity()) {
+            input.style.border = "1px solid red";
+            isValid = false;
+          } else {
+            input.style.border = "";
+          }
+        });
+
+        if (!isValid) {
+          alert("Пожалуйста, заполните все поля корректно.");
+        }
+
+        return isValid;
+      }
+    </script>
   </body>
 </html>
