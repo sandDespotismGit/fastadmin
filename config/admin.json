@@ -8,11 +8,13 @@
     "tables": {
       "products": {
         "title": "Продукты",
-        "display": ["id", "name"]
+        "display": ["id", "name"],
+        "editable":["name"]
       },
       "images": {
         "title":"Картинки",
-        "display":["id", "url"]
+        "display":[ "id","url"],
+        "editable":["url"]
       }
     }
   }

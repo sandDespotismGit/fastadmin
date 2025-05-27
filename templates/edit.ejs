@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <style>
+      body {
+        font-family: "Montserrat", sans-serif;
+        padding: 20px;
+      }
+      input {
+        padding: 5px;
+        width: 300px;
+        margin-bottom: 10px;
+        display: block;
+      }
+      button {
+        padding: 6px 12px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1><%= title %></h1>
+    <form method="POST" action="/admin/<%= tableName %>/edit/<%= id %>">
+      <% fields.forEach(field => { %>
+      <div>
+        <label><%= field %></label><br />
+        <input type="text" name="<%= field %>" value="<%= data[field] %>" <%=
+        editable.includes(field) ? "" : "disabled" %> />
+      </div>
+      <% }) %>
+      <button type="submit">💾 Сохранить</button>
+    </form>
+  </body>
+</html>
