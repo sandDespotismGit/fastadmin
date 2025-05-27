@@ -155,20 +155,21 @@
               class="add-form"
               method="POST"
               action="/admin/<%= tableName %>/add"
-              onsubmit="return validateForm(this)"
+              enctype="multipart/form-data"
             >
-              <% displayFields.forEach(field => { const name = field[0]; const
-              type = field[1]; %> <% if (name === 'id') { %>
+              <% displayFields.forEach(field => { %> <% if (field[0] === 'id') {
+              %>
               <td>—</td>
               <% } else { %>
               <td>
-                <input name="<%= name %>" <%= editable.includes(name) ? (
-                type.includes('int') ? 'type="number" required' :
-                type.includes('varchar') ? `type="text"
-                maxlength="${(type.match(/\\d+/) || [255])[0]}" required` :
-                'type="text" required' ) : 'disabled' %> />
+                <% if ((config.tables[tableName].fileFields ||
+                []).includes(field[0])) { %>
+                <input type="file" name="<%= field[0] %>" />
+                <% } else { %> <input type="text" name="<%= field[0] %>" <%=
+                editable.includes(field[0]) ? '' : 'disabled="disabled"' %> />
+                <% } %>
               </td>
-              <% } %> <% }) %>
+              <% } %> <% }); %>
               <td><button type="submit">➕ Добавить</button></td>
             </form>
           </tr>

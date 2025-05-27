@@ -13,13 +13,13 @@
   "dependencies": {
     "ejs": "^3.1.10",
     "express": "^5.1.0",
+    "multer": "^2.0.0",
     "mysql2": "^3.14.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
   },
   "nodemonConfig": {
-    "ext": "js,json,ejs"                
-}
-
+    "ext": "js,json,ejs"
+  }
 }

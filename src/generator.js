@@ -2,13 +2,23 @@ const mysql = require('mysql2/promise');
 const express = require('express');
 const pool = require('./db');
 const config = require('../config/admin.json');
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
-const dbConfig = {
-    host: 'localhost',
-    user: "wordpress",
-    password: "wordpress",
-    database: "access_bot"
-};
+const uploadDir = "/home/alex/Desktop/ProjectsAtlas/IPANELlanding/admin/static/images";
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueName = `${crypto.randomUUID()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+    }
+});
+
+const upload = multer({ storage });
 
 module.exports = async function generateAdminRoutes(app) {
 
@@ -28,7 +38,7 @@ module.exports = async function generateAdminRoutes(app) {
         const [tables] = await pool.execute('SHOW TABLES');
         const tableNames = tables.map(t => Object.values(t)[0]);
         // Получение внешних ключей
-        const [relations] = await pool.execute(`SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND CONSTRAINT_NAME != 'PRIMARY'`, [dbConfig.database]);
+        const [relations] = await pool.execute(`SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND CONSTRAINT_NAME != 'PRIMARY'`, [config.database.database]);
 
         const displayFields = schema.map(col => { return [col.Field, col.Type] }).filter((elem) => config.tables[tableName].display.includes(elem[0]));
 
@@ -42,16 +52,35 @@ module.exports = async function generateAdminRoutes(app) {
             data: rows,
             relations: relations,
             editable: config.tables[tableName].editable,
+            config: config,
             schema
         });
     });
 
     // Добавление записи
-    app.post('/admin/:table/add', express.urlencoded({ extended: true }), async (req, res) => {
-        const tableName = req.params.table;
-        const fields = Object.keys(req.body);
-        const values = Object.values(req.body);
+    app.post('/admin/:table/add', express.urlencoded({ extended: true }), upload.any(), async (req, res) => {
+        const table = req.params.table;
+        const configTable = config.tables[table];
 
+        const data = {};
+        for (const field of configTable.display) {
+            if (field === "id") continue;
+
+            const isFile = (configTable.fileFields || []).includes(field);
+            if (isFile) {
+                console.log(req)
+                const uploadedFile = req.files.find(f => f.fieldname === field);
+                if (uploadedFile) {
+                    data[field] = path.join("static/images", uploadedFile.filename);
+                }
+            } else {
+                data[field] = req.body[field];
+            }
+        }
+        const tableName = req.params.table;
+        console.log(req.params)
+        const fields = Object.keys(req.body).concat(req.files.map((file) => file.fieldname));
+        const values = Object.values(req.body).concat(req.files.map((file) => file.path));
         const placeholders = fields.map(() => '?').join(', ');
         const sql = `INSERT INTO \`${tableName}\` (${fields.join(', ')}) VALUES (${placeholders})`;
 
@@ -74,7 +103,7 @@ module.exports = async function generateAdminRoutes(app) {
                   SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
                   FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                   WHERE REFERENCED_TABLE_NAME = ? AND TABLE_SCHEMA = ?
-                `, [tableName, dbConfig.database]);
+                `, [tableName, config.database.database]);
 
                 let relatedTables = [];
 

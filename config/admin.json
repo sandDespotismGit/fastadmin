@@ -9,17 +9,18 @@
       "products": {
         "title": "Продукты",
         "display": ["id", "name", "proportions", "sizes", "dimensions", "matrix_size", "orientation", "price", "description", "category"],
-        "editable":["name","proportions", "sizes", "dimensions", "matrix_size", "orientation", "price", "description", "category"]
+        "editable": ["name", "proportions", "sizes", "dimensions", "matrix_size", "orientation", "price", "description", "category"]
       },
       "images": {
-        "title":"Картинки",
-        "display":[ "id","url"],
-        "editable":["url"]
+        "title": "Картинки",
+        "display": ["id", "url"],
+        "editable": ["url"],
+        "fileFields": ["url"]
       },
-      "images_products":{
-        "title":"Системная таблица для связи между картинками и продуктами",
-        "display":["id"],
-        "editable":[]
+      "images_products": {
+        "title": "Системная таблица для связи между картинками и продуктами",
+        "display": ["id"],
+        "editable": []
       }
     }
   }
