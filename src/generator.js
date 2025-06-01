@@ -48,13 +48,50 @@ module.exports = async function generateAdminRoutes(app) {
         const tableNames = tables.map(t => Object.values(t)[0]);
         // Получение внешних ключей
         const [relations] = await pool.execute(`SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND CONSTRAINT_NAME != 'PRIMARY'`, [config.database.database]);
-
         const displayFields = schema.map(col => { return [col.Field, col.Type] }).filter((elem) => config.tables[tableName].display.includes(elem[0]));
         if (req.query?.searchStr) {
             if (req.query?.searchStr != null || req.query?.searchStr != "") {
                 rows = searchFuse(rows, displayFields, req.query.searchStr).map((elem) => elem.item)
             }
         }
+
+        let relatedRows = [];
+
+        let relatedData = {};
+
+        try {
+            if (config.tables[tableName].keys.length > 0) {
+                const filteredRelations = relations.filter(
+                    (elem) =>
+                        elem.TABLE_NAME === tableName &&
+                        config.tables[tableName].keys.includes(elem.COLUMN_NAME) &&
+                        elem.REFERENCED_TABLE_NAME &&
+                        elem.REFERENCED_COLUMN_NAME
+                );
+
+                const relatedRowsArray = await Promise.all(
+                    filteredRelations.map(async (related) => {
+                        const [rows] = await pool.execute(
+                            `SELECT * FROM \`${related.REFERENCED_TABLE_NAME}\``
+                        );
+                        return {
+                            table: related.REFERENCED_TABLE_NAME,
+                            rows
+                        };
+                    })
+                );
+
+                // Собираем в объект: { tableName1: [...], tableName2: [...] }
+                relatedRowsArray.forEach(({ table, rows }) => {
+                    relatedData[table] = rows;
+                });
+
+                console.log('🧩 relatedData:', relatedData);
+            }
+        } catch (err) {
+            console.error('❌ Ошибка при загрузке связанных таблиц:', err.message);
+        }
+
         const getNiceType = t => ({ int: 'Число', bigint: 'Большое число', varchar: 'Текст', text: 'Текст', tinyint: 'Да/Нет', datetime: 'Дата и время', date: 'Дата', float: 'Число с запятой', double: 'Точное число', json: 'JSON', blob: 'Файл', enum: 'Выбор', boolean: 'Да/Нет' })[(t || '').toLowerCase().match(/^[a-z]+/)?.[0]] || t;
 
 
@@ -71,6 +108,7 @@ module.exports = async function generateAdminRoutes(app) {
             getNiceType: getNiceType,
             sortOrder: sortOrder,
             sortField: sortField,
+            relatedData: relatedData,
             schema
         });
     });

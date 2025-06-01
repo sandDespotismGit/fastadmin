@@ -88,6 +88,7 @@
         font-weight: bold;
         cursor: pointer;
       }
+
       input {
         padding: 5px;
         width: 300px;
@@ -96,6 +97,50 @@
         color: white;
         border: 2px solid rgb(115, 112, 237);
         border-radius: 12px;
+      }
+
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+        z-index: 9999;
+      }
+
+      .modal-content {
+        background-color: rgb(24, 24, 38);
+        margin: 5% auto;
+        padding: 20px;
+        width: 80%;
+        max-height: 80%;
+        overflow-y: auto;
+        border-radius: 8px;
+      }
+
+      .modal-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .modal-table th,
+      .modal-table td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+      }
+
+      .selected-label {
+        margin-left: 10px;
+        font-style: italic;
+        color: #666;
+      }
+
+      .close {
+        float: right;
+        font-size: 24px;
+        cursor: pointer;
       }
     </style>
   </head>
@@ -177,6 +222,7 @@
           color: white;
           font-weight: 600;
         }
+
         .table-cell {
           flex: 1;
           padding: 12px;
@@ -322,31 +368,45 @@
         >
           <div class="table-row">
             <% displayFields.forEach(field => { const name = field[0]; const
-            type = field[1]; %> <% if (name === 'id') { %>
+            type = field[1]; const isEditable = editable.includes(name); const
+            isFile = (config.tables[tableName].fileFields || []).includes(name);
+            const isKey = (config.tables[tableName].keys || []).includes(name);
+            const relatedTable = (relations || []).find(r => r.TABLE_NAME ===
+            tableName && r.COLUMN_NAME === name)?.REFERENCED_TABLE_NAME; %> <%
+            if (name === 'id') { %>
             <div class="table-cell">—</div>
             <% } else { %>
             <div class="table-cell">
-              <% if ((config.tables[tableName].fileFields || []).includes(name))
-              { %>
+              <% if (isFile) { %>
               <input type="file" name="<%= name %>" />
-              <% } else { %> <% if (editable.includes(name)) { %> <% if
-              (type.includes('int')) { %>
-              <input type="number" name="<%= name %>" required />
-              <% } else if (type.includes('varchar')) { const maxLen =
-              (type.match(/\d+/) || [255])[0]; %>
-              <input
-                type="text"
-                name="<%= name %>"
-                maxlength="<%= maxLen %>"
-                required
-              />
-              <% } else { %>
-              <input type="text" name="<%= name %>" required />
-              <% } %> <% } else { %>
-              <input type="text" name="<%= name %>" disabled />
-              <% } %> <% } %>
+              <% } else if (isKey && relatedTable && relatedData[relatedTable])
+              { %>
+              <div class="custom-select-container">
+                <input
+                  type="hidden"
+                  name="<%= name %>"
+                  id="<%= name %>_hidden"
+                />
+                <button
+                  type="button"
+                  class="open-modal-btn"
+                  onclick="openModal('<%= name %>', '<%= relatedTable %>')"
+                >
+                  Выбрать...
+                </button>
+                <span id="<%= name %>_selectedLabel" class="selected-label"
+                  >Ничего не выбрано</span
+                >
+              </div>
+
+              <% } else { %> <input name="<%= name %>" <%= isEditable ? (
+              type.includes('int') ? 'type="number" required' :
+              type.includes('varchar') ? `type="text"
+              maxlength="${(type.match(/\d+/) || [255])[0]}" required` :
+              'type="text" required' ) : 'disabled' %> /> <% } %>
             </div>
             <% } %> <% }) %>
+
             <div class="table-cell">
               <button type="submit">➕ Добавить</button>
             </div>
@@ -354,6 +414,98 @@
         </form>
       </div>
     </div>
+    <div id="relationModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3>Выберите элемент</h3>
+        <table id="modalTable" class="modal-table">
+          <thead>
+            <tr id="modalTableHead"></tr>
+          </thead>
+          <tbody id="modalTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+      window.config = {
+        tables: <%- JSON.stringify(config.tables) %>,
+        database: {
+          staticHost: "<%= config.database.staticHost %>"
+        }
+      };
+    </script>
+
+    <script>
+      const relatedData = <%- JSON.stringify(relatedData) %>;
+      let currentField = null;
+
+      function openModal(fieldName, relatedTableName) {
+        currentField = fieldName;
+        const data = relatedData[relatedTableName] || [];
+
+        // Создание заголовков
+        const head = document.getElementById('modalTableHead');
+        head.innerHTML = '';
+        const firstItem = data[0] || {};
+        for (let key in firstItem) {
+          const th = document.createElement('th');
+          th.textContent = key;
+          th.style.backgroundColor = 'rgb(24, 24, 38)'
+          head.appendChild(th);
+        }
+        const thSelect = document.createElement('th');
+        thSelect.textContent = 'Выбор';
+        thSelect.style.backgroundColor = 'rgb(24, 24, 38)'
+        head.appendChild(thSelect);
+
+        // Создание тела таблицы
+        const body = document.getElementById('modalTableBody');
+        body.innerHTML = '';
+        data.forEach(item => {
+          const row = document.createElement('tr');
+          for (let key in item) {
+            const td = document.createElement('td');
+
+
+            // Проверяем, есть ли поле изображений
+            const isImage = config.tables[relatedTableName].fileFields.includes(key);
+
+            if (isImage) {
+              const img = document.createElement('img');
+              img.src = config.database.staticHost + item[key];
+              img.style.maxWidth = '80px';
+              img.style.maxHeight = '80px';
+              img.style.objectFit = 'cover';
+              td.appendChild(img);
+            } else {
+              td.textContent = item[key];
+            }
+
+            row.appendChild(td);
+          }
+
+          const tdBtn = document.createElement('td');
+          const btn = document.createElement('button');
+          btn.textContent = 'Выбрать';
+          btn.onclick = () => {
+            document.getElementById(`${fieldName}_hidden`).value = item.id;
+            document.getElementById(`${fieldName}_selectedLabel`).textContent = item.name || item.title || item.url || `ID: ${item.id}`;
+            closeModal();
+          };
+          tdBtn.appendChild(btn);
+          row.appendChild(tdBtn);
+
+          body.appendChild(row);
+        });
+
+        document.getElementById('relationModal').style.display = 'block';
+      }
+
+      function closeModal() {
+        document.getElementById('relationModal').style.display = 'none';
+      }
+    </script>
+
     <script>
       function validateForm(form) {
         const inputs = form.querySelectorAll("input:not([disabled])");
