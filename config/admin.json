@@ -3,24 +3,31 @@
       "host": "localhost",
       "user": "wordpress",
       "password": "wordpress",
-      "database": "access_bot"
+      "database": "access_bot",
+      "imgUploadDir": "/home/alex/Desktop/ProjectsAtlas/IPANELlanding/admin/static/images",
+      "staticDirName":"static",
+      "staticHost":"http://127.0.0.1:8008/"
     },
     "tables": {
       "products": {
         "title": "Продукты",
         "display": ["id", "name", "proportions", "sizes", "dimensions", "matrix_size", "orientation", "price", "description", "category"],
-        "editable": ["name", "proportions", "sizes", "dimensions", "matrix_size", "orientation", "price", "description", "category"]
+        "editable": ["name", "proportions", "sizes", "dimensions", "matrix_size", "orientation", "price", "description", "category"],
+        "fileFields": ["name"]
+        
       },
       "images": {
         "title": "Картинки",
         "display": ["id", "url"],
         "editable": ["url"],
         "fileFields": ["url"]
+
       },
       "images_products": {
         "title": "Системная таблица для связи между картинками и продуктами",
-        "display": ["id"],
-        "editable": []
+        "display": ["id", "image_id", "product_id"],
+        "editable": ["image_id", "product_id"],
+        "keys":["image_id", "product_id"]
       }
     }
   }
