@@ -109,6 +109,7 @@ module.exports = async function generateAdminRoutes(app) {
             sortOrder: sortOrder,
             sortField: sortField,
             relatedData: relatedData,
+            description: config.tables[tableName].description,
             schema
         });
     });
